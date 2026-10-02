@@ -4,6 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 
 let editingCategoryId = null;
 let categoriesCache = {};
+let activeItemId = null;
 
 onAuthStateChanged(auth, (user) => {
     if (!user || user.email !== 'adda@adda.com') {
@@ -37,8 +38,11 @@ catForm.addEventListener('submit', async (e) => {
 async function loadCategories() {
     const list = document.getElementById('cat-list');
     const select = document.getElementById('item-category');
+    const modalSelect = document.getElementById('modal-target-category');
+    
     list.innerHTML = '';
     select.innerHTML = '<option value="">Select Category...</option>';
+    modalSelect.innerHTML = '';
     categoriesCache = {};
     
     const snapshot = await getDocs(collection(db, "categories"));
@@ -60,6 +64,11 @@ async function loadCategories() {
         option.value = docSnap.id;
         option.textContent = data.name;
         select.appendChild(option);
+
+        const modalOption = document.createElement('option');
+        modalOption.value = docSnap.id;
+        modalOption.textContent = data.name;
+        modalSelect.appendChild(modalOption);
     });
 
     document.querySelectorAll('.rename-cat-btn').forEach(btn => {
@@ -124,45 +133,22 @@ async function loadItems() {
         list.appendChild(div);
     });
 
-    // Rename Item (Prompt-based for name & price)
+    // Rename Item Modal Trigger
     document.querySelectorAll('.rename-item-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const id = e.target.dataset.id;
-            const currentName = e.target.dataset.name;
-            const currentPrice = e.target.dataset.price;
-
-            const newName = prompt("Enter new item name:", currentName);
-            if (newName === null) return;
-            const newPrice = prompt("Enter new price (e.g. 10 or 10,20):", currentPrice);
-            if (newPrice === null) return;
-
-            await updateDoc(doc(db, "items", id), { name: newName, price: newPrice });
-            loadItems();
+        btn.addEventListener('click', (e) => {
+            activeItemId = e.target.dataset.id;
+            document.getElementById('modal-item-name').value = e.target.dataset.name;
+            document.getElementById('modal-item-price').value = e.target.dataset.price;
+            document.getElementById('rename-modal').style.display = 'flex';
         });
     });
 
-    // Move Item to another Category
+    // Move Item Modal Trigger
     document.querySelectorAll('.move-item-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const id = e.target.dataset.id;
-            const currentCat = e.target.dataset.cat;
-
-            let catOptions = "";
-            for (const [idKey, nameVal] of Object.entries(categoriesCache)) {
-                catOptions += `${idKey}: ${nameVal}\n`;
-            }
-
-            const targetCategoryName = prompt("Choose a category to move to:\n" + Object.values(categoriesCache).join(", "));
-            if (!targetCategoryName) return;
-
-            const targetEntry = Object.entries(categoriesCache).find(([k, v]) => v.toLowerCase() === targetCategoryName.toLowerCase());
-            
-            if (targetEntry) {
-                await updateDoc(doc(db, "items", id), { categoryId: targetEntry[0] });
-                loadItems();
-            } else {
-                alert("Category not found! Please type the exact category name.");
-            }
+        btn.addEventListener('click', (e) => {
+            activeItemId = e.target.dataset.id;
+            document.getElementById('modal-target-category').value = e.target.dataset.cat;
+            document.getElementById('move-modal').style.display = 'flex';
         });
     });
 
@@ -174,6 +160,34 @@ async function loadItems() {
         });
     });
 }
+
+// Modal Actions
+document.getElementById('save-rename-btn').addEventListener('click', async () => {
+    const name = document.getElementById('modal-item-name').value;
+    const price = document.getElementById('modal-item-price').value;
+    if (activeItemId && name && price) {
+        await updateDoc(doc(db, "items", activeItemId), { name, price });
+        document.getElementById('rename-modal').style.display = 'none';
+        loadItems();
+    }
+});
+
+document.getElementById('cancel-rename-btn').addEventListener('click', () => {
+    document.getElementById('rename-modal').style.display = 'none';
+});
+
+document.getElementById('save-move-btn').addEventListener('click', async () => {
+    const categoryId = document.getElementById('modal-target-category').value;
+    if (activeItemId && categoryId) {
+        await updateDoc(doc(db, "items", activeItemId), { categoryId });
+        document.getElementById('move-modal').style.display = 'none';
+        loadItems();
+    }
+});
+
+document.getElementById('cancel-move-btn').addEventListener('click', () => {
+    document.getElementById('move-modal').style.display = 'none';
+});
 
 loadCategories();
 loadItems();
