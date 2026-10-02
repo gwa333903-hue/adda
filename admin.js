@@ -3,7 +3,6 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
 
 let editingCategoryId = null;
-let editingItemId = null;
 let categoriesCache = {};
 
 onAuthStateChanged(auth, (user) => {
@@ -16,7 +15,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
     signOut(auth).then(() => window.location.href = "index.html");
 });
 
-// Category Form Submission (Add or Edit)
+// Category Form
 const catForm = document.getElementById('cat-form');
 catForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -50,8 +49,8 @@ async function loadCategories() {
         const li = document.createElement('li');
         li.innerHTML = `
             <span>${data.name}</span>
-            <div>
-                <button class="edit-cat-btn" data-id="${docSnap.id}" data-name="${data.name}">Edit</button>
+            <div class="action-buttons">
+                <button class="rename-cat-btn" data-id="${docSnap.id}" data-name="${data.name}">Rename</button>
                 <button class="delete-btn" data-id="${docSnap.id}">Delete</button>
             </div>
         `;
@@ -63,19 +62,18 @@ async function loadCategories() {
         select.appendChild(option);
     });
 
-    // Edit Category Listeners
-    document.querySelectorAll('.edit-cat-btn').forEach(btn => {
+    document.querySelectorAll('.rename-cat-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             editingCategoryId = e.target.dataset.id;
             document.getElementById('cat-name').value = e.target.dataset.name;
             document.getElementById('cat-submit-btn').textContent = "Update Category";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     });
 
-    // Delete Category Listeners
     document.querySelectorAll('#cat-list .delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            if (confirm("Are you sure you want to delete this category?")) {
+            if (confirm("Delete this category?")) {
                 await deleteDoc(doc(db, "categories", e.target.dataset.id));
                 loadCategories();
                 loadItems();
@@ -84,29 +82,21 @@ async function loadCategories() {
     });
 }
 
-// Item Form Submission (Add or Edit)
+// Add Item Form
 const itemForm = document.getElementById('item-form');
 itemForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('add-item-btn');
-    
     const categoryId = document.getElementById('item-category').value;
     const name = document.getElementById('item-name').value;
     const price = document.getElementById('item-price').value;
 
     try {
-        if (editingItemId) {
-            await updateDoc(doc(db, "items", editingItemId), { categoryId, name, price });
-            editingItemId = null;
-            btn.textContent = "Add Item";
-        } else {
-            await addDoc(collection(db, "items"), { categoryId, name, price });
-        }
+        await addDoc(collection(db, "items"), { categoryId, name, price });
         itemForm.reset();
         loadItems();
     } catch (err) {
         console.error(err);
-        alert("Operation failed.");
+        alert("Failed to add item.");
     }
 });
 
@@ -125,27 +115,58 @@ async function loadItems() {
             <div class="item-info">
                 <span><strong>${data.name}</strong> [${categoryName}] - ₹${data.price}</span>
             </div>
-            <div>
-                <button class="edit-item-btn" data-id="${docSnap.id}" data-cat="${data.categoryId}" data-name="${data.name}" data-price="${data.price}">Edit</button>
+            <div class="action-buttons">
+                <button class="rename-item-btn" data-id="${docSnap.id}" data-name="${data.name}" data-price="${data.price}">Rename</button>
+                <button class="move-item-btn" data-id="${docSnap.id}" data-cat="${data.categoryId}">Move</button>
                 <button class="delete-btn" data-id="${docSnap.id}">Delete</button>
             </div>
         `;
         list.appendChild(div);
     });
 
-    // Edit Item Listeners
-    document.querySelectorAll('.edit-item-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            editingItemId = e.target.dataset.id;
-            document.getElementById('item-category').value = e.target.dataset.cat;
-            document.getElementById('item-name').value = e.target.dataset.name;
-            document.getElementById('item-price').value = e.target.dataset.price;
-            document.getElementById('add-item-btn').textContent = "Update Item";
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Rename Item (Prompt-based for name & price)
+    document.querySelectorAll('.rename-item-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.target.dataset.id;
+            const currentName = e.target.dataset.name;
+            const currentPrice = e.target.dataset.price;
+
+            const newName = prompt("Enter new item name:", currentName);
+            if (newName === null) return;
+            const newPrice = prompt("Enter new price (e.g. 10 or 10,20):", currentPrice);
+            if (newPrice === null) return;
+
+            await updateDoc(doc(db, "items", id), { name: newName, price: newPrice });
+            loadItems();
         });
     });
 
-    // Delete Item Listeners
+    // Move Item to another Category
+    document.querySelectorAll('.move-item-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.target.dataset.id;
+            const currentCat = e.target.dataset.cat;
+
+            let catOptions = "";
+            for (const [idKey, nameVal] of Object.entries(categoriesCache)) {
+                catOptions += `${idKey}: ${nameVal}\n`;
+            }
+
+            const targetCategoryName = prompt("Choose a category to move to:\n" + Object.values(categoriesCache).join(", "));
+            if (!targetCategoryName) return;
+
+            const targetEntry = Object.entries(categoriesCache).find(([k, v]) => v.toLowerCase() === targetCategoryName.toLowerCase());
+            
+            if (targetEntry) {
+                await updateDoc(doc(db, "items", id), { categoryId: targetEntry[0] });
+                loadItems();
+            } else {
+                alert("Category not found! Please type the exact category name.");
+            }
+        });
+    });
+
+    // Delete Item
     document.querySelectorAll('#admin-items-list .delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             await deleteDoc(doc(db, "items", e.target.dataset.id));
