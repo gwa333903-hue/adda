@@ -9,10 +9,15 @@ input, select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-
 button { padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
 button:hover { background: #2ecc71; }
 ul { list-style: none; padding: 0; }
-li, .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; gap: 10px; }
-li div, .admin-item div { display: flex; gap: 5px; }
-.delete-btn { background: #e74c3c; padding: 5px 10px; font-size: 12px; }
+li, .admin-item { display: flex; flex-direction: column; align-items: flex-start; padding: 12px; border-bottom: 1px solid #eee; gap: 8px; }
+@media(min-width: 450px) {
+    li, .admin-item { flex-direction: row; justify-content: space-between; align-items: center; }
+}
+.action-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+.delete-btn { background: #e74c3c; padding: 6px 12px; font-size: 13px; }
 .delete-btn:hover { background: #c0392b; }
-.edit-cat-btn, .edit-item-btn { background: #2980b9; padding: 5px 10px; font-size: 12px; }
-.edit-cat-btn:hover, .edit-item-btn:hover { background: #3498db; }
+.rename-cat-btn, .rename-item-btn { background: #34495e; padding: 6px 12px; font-size: 13px; color: white; }
+.rename-cat-btn:hover, .rename-item-btn:hover { background: #2c3e50; }
+.move-item-btn { background: #7f8c8d; padding: 6px 12px; font-size: 13px; color: white; }
+.move-item-btn:hover { background: #707b7c; }
 .item-info { flex: 1; }
