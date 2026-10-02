@@ -3,6 +3,7 @@ import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.4.0/f
 
 async function loadMenu() {
     const container = document.getElementById('menu-container');
+    container.innerHTML = '';
     
     // Fetch Categories
     const catSnapshot = await getDocs(collection(db, "categories"));
@@ -14,7 +15,7 @@ async function loadMenu() {
     const items = [];
     itemSnapshot.forEach(doc => { items.push(doc.data()); });
 
-    // Render Grouped by Category in text layout
+    // Render Grouped by Category
     for (const [catId, catName] of Object.entries(categories)) {
         const catItems = items.filter(item => item.categoryId === catId);
         if (catItems.length === 0) continue;
@@ -28,10 +29,13 @@ async function loadMenu() {
         
         const list = section.querySelector('.items-list');
         catItems.forEach(item => {
+            // Format multiple prices separated by comma (e.g. "10,20" becomes "₹10 / ₹20")
+            const formattedPrice = item.price.toString().split(',').map(p => `₹${p.trim()}`).join(' / ');
+            
             list.innerHTML += `
                 <div class="item-row">
                     <span class="item-name">${item.name}</span>
-                    <span class="item-price">₹${item.price}</span>
+                    <span class="item-price">${formattedPrice}</span>
                 </div>
             `;
         });
@@ -39,10 +43,12 @@ async function loadMenu() {
     }
 }
 
-// Add a main title above the columns
-const mainTitle = document.createElement('h1');
-mainTitle.className = 'menu-title';
-mainTitle.textContent = 'MENU';
-document.body.insertBefore(mainTitle, document.getElementById('menu-container'));
+// Add main title if missing
+if (!document.querySelector('.menu-title')) {
+    const mainTitle = document.createElement('h1');
+    mainTitle.className = 'menu-title';
+    mainTitle.textContent = 'MENU';
+    document.body.insertBefore(mainTitle, document.getElementById('menu-container'));
+}
 
 loadMenu();
