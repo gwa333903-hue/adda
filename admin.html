@@ -13,21 +13,21 @@
     </header>
     <main>
         <section class="panel">
-            <h3>Add Category</h3>
+            <h3>Manage Categories</h3>
             <form id="cat-form">
-                <input type="text" id="cat-name" placeholder="Category Name (e.g. Appetizers)" required>
-                <button type="submit">Add Category</button>
+                <input type="text" id="cat-name" placeholder="Category Name (e.g. Roll)" required>
+                <button type="submit" id="cat-submit-btn">Add Category</button>
             </form>
             <ul id="cat-list"></ul>
         </section>
         <section class="panel">
-            <h3>Add New Item</h3>
+            <h3>Add / Edit Item</h3>
             <form id="item-form">
                 <select id="item-category" required>
                     <option value="">Select Category...</option>
                 </select>
                 <input type="text" id="item-name" placeholder="Item Name" required>
-                <input type="number" id="item-price" placeholder="Price" required>
+                <input type="text" id="item-price" placeholder="Price (e.g. 10 or 10,20)" required>
                 <button type="submit" id="add-item-btn">Add Item</button>
             </form>
             <h3>Manage Items</h3>
