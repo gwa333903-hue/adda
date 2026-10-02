@@ -34,6 +34,32 @@
             <div id="admin-items-list"></div>
         </section>
     </main>
+
+    <!-- Modal for Renaming Items -->
+    <div id="rename-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Rename Item & Prices</h3>
+            <input type="text" id="modal-item-name" placeholder="Item Name">
+            <input type="text" id="modal-item-price" placeholder="Prices (e.g. 10,20)">
+            <div class="modal-buttons">
+                <button id="save-rename-btn">Save</button>
+                <button id="cancel-rename-btn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Moving Items -->
+    <div id="move-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Move Item to Category</h3>
+            <select id="modal-target-category"></select>
+            <div class="modal-buttons">
+                <button id="save-move-btn">Move</button>
+                <button id="cancel-move-btn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="admin.js"></script>
 </body>
 </html>
