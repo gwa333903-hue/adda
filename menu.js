@@ -3,34 +3,46 @@ import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.4.0/f
 
 async function loadMenu() {
     const container = document.getElementById('menu-container');
-        const catSnapshot = await getDocs(collection(db, "categories"));
-            const categories = {};
-                catSnapshot.forEach(doc => { categories[doc.id] = doc.data().name; });
+    
+    // Fetch Categories
+    const catSnapshot = await getDocs(collection(db, "categories"));
+    const categories = {};
+    catSnapshot.forEach(doc => { categories[doc.id] = doc.data().name; });
 
-                    const itemSnapshot = await getDocs(collection(db, "items"));
-                        const items = [];
-                            itemSnapshot.forEach(doc => { items.push(doc.data()); });
+    // Fetch Items
+    const itemSnapshot = await getDocs(collection(db, "items"));
+    const items = [];
+    itemSnapshot.forEach(doc => { items.push(doc.data()); });
 
-                                for (const [catId, catName] of Object.entries(categories)) {
-                                        const catItems = items.filter(item => item.categoryId === catId);
-                                                if (catItems.length === 0) continue;
+    // Render Grouped by Category in text layout
+    for (const [catId, catName] of Object.entries(categories)) {
+        const catItems = items.filter(item => item.categoryId === catId);
+        if (catItems.length === 0) continue;
 
-                                                        const section = document.createElement('div');
-                                                                section.className = 'category-section';
-                                                                        section.innerHTML = `<h3 class="category-title">${catName}</h3><div class="items-grid"></div>`;
-                                                                                
-                                                                                        const grid = section.querySelector('.items-grid');
-                                                                                                catItems.forEach(item => {
-                                                                                                            grid.innerHTML += `
-                                                                                                                            <div class="item-card">
-                                                                                                                                                <img src="${item.imageUrl}" alt="${item.name}">
-                                                                                                                                                                    <h4 class="item-name">${item.name}</h4>
-                                                                                                                                                                                        <p class="item-price">₹${item.price}</p>
-                                                                                                                                                                                                        </div>
-                                                                                                                                                                                                                    `;
-                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                    container.appendChild(section);
-                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                        loadMenu();
-                                                                                                                                                                                                                                        
+        const section = document.createElement('div');
+        section.className = 'category-section';
+        section.innerHTML = `
+            <h3 class="category-title">${catName}</h3>
+            <div class="items-list"></div>
+        `;
+        
+        const list = section.querySelector('.items-list');
+        catItems.forEach(item => {
+            list.innerHTML += `
+                <div class="item-row">
+                    <span class="item-name">${item.name}</span>
+                    <span class="item-price">₹${item.price}</span>
+                </div>
+            `;
+        });
+        container.appendChild(section);
+    }
+}
+
+// Add a main title above the columns
+const mainTitle = document.createElement('h1');
+mainTitle.className = 'menu-title';
+mainTitle.textContent = 'MENU';
+document.body.insertBefore(mainTitle, document.getElementById('menu-container'));
+
+loadMenu();
