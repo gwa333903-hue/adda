@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 let editingCategoryId = null;
 let categoriesCache = {};
 let activeItemId = null;
+let activeCategoryId = null;
 
 onAuthStateChanged(auth, (user) => {
     if (!user || user.email !== 'adda@adda.com') {
@@ -52,7 +53,6 @@ async function loadCategories() {
         categoriesList.push({ id: docSnap.id, ...docSnap.data() });
     });
 
-    // Sort categories by their order number
     categoriesList.sort((a, b) => (a.order || 0) - (b.order || 0));
 
     categoriesList.forEach(cat => {
@@ -63,6 +63,7 @@ async function loadCategories() {
             <span>[#${cat.order || 0}] <strong>${cat.name}</strong></span>
             <div class="action-buttons">
                 <button class="rename-cat-btn" data-id="${cat.id}" data-name="${cat.name}" data-order="${cat.order || 0}">Rename</button>
+                <button class="move-cat-btn" data-id="${cat.id}" data-order="${cat.order || 0}">Move</button>
                 <button class="delete-btn" data-id="${cat.id}">Delete</button>
             </div>
         `;
@@ -79,6 +80,7 @@ async function loadCategories() {
         modalSelect.appendChild(modalOption);
     });
 
+    // Rename Category Trigger
     document.querySelectorAll('.rename-cat-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             editingCategoryId = e.target.dataset.id;
@@ -86,6 +88,15 @@ async function loadCategories() {
             document.getElementById('cat-order').value = e.target.dataset.order;
             document.getElementById('cat-submit-btn').textContent = "Update Category";
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    // Move Category Position Trigger
+    document.querySelectorAll('.move-cat-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            activeCategoryId = e.target.dataset.id;
+            document.getElementById('modal-target-position').value = e.target.dataset.order || 1;
+            document.getElementById('move-cat-modal').style.display = 'flex';
         });
     });
 
@@ -193,6 +204,20 @@ document.getElementById('save-move-btn').addEventListener('click', async () => {
 
 document.getElementById('cancel-move-btn').addEventListener('click', () => {
     document.getElementById('move-modal').style.display = 'none';
+});
+
+// Category Position Modal Actions
+document.getElementById('save-cat-move-btn').addEventListener('click', async () => {
+    const newOrder = Number(document.getElementById('modal-target-position').value);
+    if (activeCategoryId) {
+        await updateDoc(doc(db, "categories", activeCategoryId), { order: newOrder });
+        document.getElementById('move-cat-modal').style.display = 'none';
+        loadCategories();
+    }
+});
+
+document.getElementById('cancel-cat-move-btn').addEventListener('click', () => {
+    document.getElementById('move-cat-modal').style.display = 'none';
 });
 
 loadCategories();
