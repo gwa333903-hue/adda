@@ -4,6 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 
 let editingCategoryId = null;
 let categoriesCache = {};
+let categoriesListFull = [];
 let activeItemId = null;
 let activeCategoryId = null;
 
@@ -33,11 +34,10 @@ catForm.addEventListener('submit', async (e) => {
     }
     
     catForm.reset();
-    loadCategories();
-    loadItems();
+    loadCategoriesAndItems();
 });
 
-async function loadCategories() {
+async function loadCategoriesAndItems() {
     const list = document.getElementById('cat-list');
     const select = document.getElementById('item-category');
     const modalSelect = document.getElementById('modal-target-category');
@@ -46,16 +46,16 @@ async function loadCategories() {
     select.innerHTML = '<option value="">Select Category...</option>';
     modalSelect.innerHTML = '';
     categoriesCache = {};
+    categoriesListFull = [];
     
     const snapshot = await getDocs(collection(db, "categories"));
-    let categoriesList = [];
     snapshot.forEach(docSnap => {
-        categoriesList.push({ id: docSnap.id, ...docSnap.data() });
+        categoriesListFull.push({ id: docSnap.id, ...docSnap.data() });
     });
 
-    categoriesList.sort((a, b) => (a.order || 0) - (b.order || 0));
+    categoriesListFull.sort((a, b) => (a.order || 0) - (b.order || 0));
 
-    categoriesList.forEach(cat => {
+    categoriesListFull.forEach(cat => {
         categoriesCache[cat.id] = cat.name;
 
         const li = document.createElement('li');
@@ -104,11 +104,13 @@ async function loadCategories() {
         btn.addEventListener('click', async (e) => {
             if (confirm("Delete this category?")) {
                 await deleteDoc(doc(db, "categories", e.target.dataset.id));
-                loadCategories();
-                loadItems();
+                loadCategoriesAndItems();
             }
         });
     });
+
+    // Load items after categories are cached
+    loadItems();
 }
 
 // Add Item Form
@@ -134,20 +136,33 @@ async function loadItems() {
     list.innerHTML = '';
     const snapshot = await getDocs(collection(db, "items"));
     
+    let itemsList = [];
     snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const categoryName = categoriesCache[data.categoryId] || "Unassigned";
+        itemsList.push({ id: docSnap.id, ...docSnap.data() });
+    });
+
+    // Sort items category-wise based on category order
+    itemsList.sort((a, b) => {
+        const catA = categoriesListFull.find(c => c.id === a.categoryId);
+        const catB = categoriesListFull.find(c => c.id === b.categoryId);
+        const orderA = catA ? (catA.order || 0) : 999;
+        const orderB = catB ? (catB.order || 0) : 999;
+        return orderA - orderB;
+    });
+
+    itemsList.forEach(item => {
+        const categoryName = categoriesCache[item.categoryId] || "Unassigned";
         
         const div = document.createElement('div');
         div.className = 'admin-item';
         div.innerHTML = `
             <div class="item-info">
-                <span><strong>${data.name}</strong> [${categoryName}] - ₹${data.price}</span>
+                <span><strong>${item.name}</strong> [${categoryName}] - ₹${item.price}</span>
             </div>
             <div class="action-buttons">
-                <button class="rename-item-btn" data-id="${docSnap.id}" data-name="${data.name}" data-price="${data.price}">Rename</button>
-                <button class="move-item-btn" data-id="${docSnap.id}" data-cat="${data.categoryId}">Move</button>
-                <button class="delete-btn" data-id="${docSnap.id}">Delete</button>
+                <button class="rename-item-btn" data-id="${item.id}" data-name="${item.name}" data-price="${item.price}">Rename</button>
+                <button class="move-item-btn" data-id="${item.id}" data-cat="${item.categoryId}">Move</button>
+                <button class="delete-btn" data-id="${item.id}">Delete</button>
             </div>
         `;
         list.appendChild(div);
@@ -212,7 +227,7 @@ document.getElementById('save-cat-move-btn').addEventListener('click', async () 
     if (activeCategoryId) {
         await updateDoc(doc(db, "categories", activeCategoryId), { order: newOrder });
         document.getElementById('move-cat-modal').style.display = 'none';
-        loadCategories();
+        loadCategoriesAndItems();
     }
 });
 
@@ -220,5 +235,4 @@ document.getElementById('cancel-cat-move-btn').addEventListener('click', () => {
     document.getElementById('move-cat-modal').style.display = 'none';
 });
 
-loadCategories();
-loadItems();
+loadCategoriesAndItems();
