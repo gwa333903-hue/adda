@@ -21,13 +21,14 @@ const catForm = document.getElementById('cat-form');
 catForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('cat-name').value;
+    const order = Number(document.getElementById('cat-order').value);
     
     if (editingCategoryId) {
-        await updateDoc(doc(db, "categories", editingCategoryId), { name });
+        await updateDoc(doc(db, "categories", editingCategoryId), { name, order });
         editingCategoryId = null;
         document.getElementById('cat-submit-btn').textContent = "Add Category";
     } else {
-        await addDoc(collection(db, "categories"), { name });
+        await addDoc(collection(db, "categories"), { name, order });
     }
     
     catForm.reset();
@@ -46,28 +47,35 @@ async function loadCategories() {
     categoriesCache = {};
     
     const snapshot = await getDocs(collection(db, "categories"));
+    let categoriesList = [];
     snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        categoriesCache[docSnap.id] = data.name;
+        categoriesList.push({ id: docSnap.id, ...docSnap.data() });
+    });
+
+    // Sort categories by their order number
+    categoriesList.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    categoriesList.forEach(cat => {
+        categoriesCache[cat.id] = cat.name;
 
         const li = document.createElement('li');
         li.innerHTML = `
-            <span>${data.name}</span>
+            <span>[#${cat.order || 0}] <strong>${cat.name}</strong></span>
             <div class="action-buttons">
-                <button class="rename-cat-btn" data-id="${docSnap.id}" data-name="${data.name}">Rename</button>
-                <button class="delete-btn" data-id="${docSnap.id}">Delete</button>
+                <button class="rename-cat-btn" data-id="${cat.id}" data-name="${cat.name}" data-order="${cat.order || 0}">Rename</button>
+                <button class="delete-btn" data-id="${cat.id}">Delete</button>
             </div>
         `;
         list.appendChild(li);
         
         const option = document.createElement('option');
-        option.value = docSnap.id;
-        option.textContent = data.name;
+        option.value = cat.id;
+        option.textContent = cat.name;
         select.appendChild(option);
 
         const modalOption = document.createElement('option');
-        modalOption.value = docSnap.id;
-        modalOption.textContent = data.name;
+        modalOption.value = cat.id;
+        modalOption.textContent = cat.name;
         modalSelect.appendChild(modalOption);
     });
 
@@ -75,6 +83,7 @@ async function loadCategories() {
         btn.addEventListener('click', (e) => {
             editingCategoryId = e.target.dataset.id;
             document.getElementById('cat-name').value = e.target.dataset.name;
+            document.getElementById('cat-order').value = e.target.dataset.order;
             document.getElementById('cat-submit-btn').textContent = "Update Category";
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
@@ -133,7 +142,6 @@ async function loadItems() {
         list.appendChild(div);
     });
 
-    // Rename Item Modal Trigger
     document.querySelectorAll('.rename-item-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             activeItemId = e.target.dataset.id;
@@ -143,7 +151,6 @@ async function loadItems() {
         });
     });
 
-    // Move Item Modal Trigger
     document.querySelectorAll('.move-item-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             activeItemId = e.target.dataset.id;
@@ -152,7 +159,6 @@ async function loadItems() {
         });
     });
 
-    // Delete Item
     document.querySelectorAll('#admin-items-list .delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             await deleteDoc(doc(db, "items", e.target.dataset.id));
