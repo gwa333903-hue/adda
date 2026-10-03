@@ -7,29 +7,33 @@ async function loadMenu() {
     
     // Fetch Categories
     const catSnapshot = await getDocs(collection(db, "categories"));
-    const categories = {};
-    catSnapshot.forEach(doc => { categories[doc.id] = doc.data().name; });
+    let categoriesList = [];
+    catSnapshot.forEach(doc => { 
+        categoriesList.push({ id: doc.id, ...doc.data() }); 
+    });
+
+    // Sort categories based on their order number
+    categoriesList.sort((a, b) => (a.order || 0) - (b.order || 0));
 
     // Fetch Items
     const itemSnapshot = await getDocs(collection(db, "items"));
     const items = [];
     itemSnapshot.forEach(doc => { items.push(doc.data()); });
 
-    // Render Grouped by Category
-    for (const [catId, catName] of Object.entries(categories)) {
-        const catItems = items.filter(item => item.categoryId === catId);
-        if (catItems.length === 0) continue;
+    // Render Grouped by Sorted Category
+    categoriesList.forEach(cat => {
+        const catItems = items.filter(item => item.categoryId === cat.id);
+        if (catItems.length === 0) return;
 
         const section = document.createElement('div');
         section.className = 'category-section';
         section.innerHTML = `
-            <h3 class="category-title">${catName}</h3>
+            <h3 class="category-title">${cat.name}</h3>
             <div class="items-list"></div>
         `;
         
         const list = section.querySelector('.items-list');
         catItems.forEach(item => {
-            // Format multiple prices separated by comma (e.g. "10,20" becomes "₹10 / ₹20")
             const formattedPrice = item.price.toString().split(',').map(p => `₹${p.trim()}`).join(' / ');
             
             list.innerHTML += `
@@ -40,7 +44,7 @@ async function loadMenu() {
             `;
         });
         container.appendChild(section);
-    }
+    });
 }
 
 // Add main title if missing
