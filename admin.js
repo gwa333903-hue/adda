@@ -9,42 +9,52 @@ let activeItemId = null;
 let activeCategoryId = null;
 
 onAuthStateChanged(auth, (user) => {
-    if (!user || user.email !== 'adda@adda.com') {
+    if (user && user.email === 'adda@adda.com') {
+        // If already logged in and visiting login.html or root, it handles auto-redirect if placed there, 
+        // but here we keep the admin security check intact:
+    } else if (!user && window.location.pathname.includes('admin.html')) {
         window.location.href = "login.html";
     }
 });
 
-document.getElementById('logout-btn').addEventListener('click', () => {
-    signOut(auth).then(() => window.location.href = "index.html");
-});
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        signOut(auth).then(() => window.location.href = "index.html");
+    });
+}
 
 // Category Form
 const catForm = document.getElementById('cat-form');
-catForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('cat-name').value;
-    const order = Number(document.getElementById('cat-order').value);
-    
-    if (editingCategoryId) {
-        await updateDoc(doc(db, "categories", editingCategoryId), { name, order });
-        editingCategoryId = null;
-        document.getElementById('cat-submit-btn').textContent = "Add Category";
-    } else {
-        await addDoc(collection(db, "categories"), { name, order });
-    }
-    
-    catForm.reset();
-    loadCategoriesAndItems();
-});
+if (catForm) {
+    catForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('cat-name').value;
+        const order = Number(document.getElementById('cat-order').value);
+        
+        if (editingCategoryId) {
+            await updateDoc(doc(db, "categories", editingCategoryId), { name, order });
+            editingCategoryId = null;
+            document.getElementById('cat-submit-btn').textContent = "Add Category";
+        } else {
+            await addDoc(collection(db, "categories"), { name, order });
+        }
+        
+        catForm.reset();
+        loadCategoriesAndItems();
+    });
+}
 
 async function loadCategoriesAndItems() {
     const list = document.getElementById('cat-list');
     const select = document.getElementById('item-category');
     const modalSelect = document.getElementById('modal-target-category');
     
+    if (!list) return;
+
     list.innerHTML = '';
-    select.innerHTML = '<option value="">Select Category...</option>';
-    modalSelect.innerHTML = '';
+    if (select) select.innerHTML = '<option value="">Select Category...</option>';
+    if (modalSelect) modalSelect.innerHTML = '';
     categoriesCache = {};
     categoriesListFull = [];
     
@@ -69,15 +79,19 @@ async function loadCategoriesAndItems() {
         `;
         list.appendChild(li);
         
-        const option = document.createElement('option');
-        option.value = cat.id;
-        option.textContent = cat.name;
-        select.appendChild(option);
+        if (select) {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name;
+            select.appendChild(option);
+        }
 
-        const modalOption = document.createElement('option');
-        modalOption.value = cat.id;
-        modalOption.textContent = cat.name;
-        modalSelect.appendChild(modalOption);
+        if (modalSelect) {
+            const modalOption = document.createElement('option');
+            modalOption.value = cat.id;
+            modalOption.textContent = cat.name;
+            modalSelect.appendChild(modalOption);
+        }
     });
 
     // Rename Category Trigger
@@ -100,39 +114,44 @@ async function loadCategoriesAndItems() {
         });
     });
 
+    // Category Delete with Confirmation
     document.querySelectorAll('#cat-list .delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            if (confirm("Delete this category?")) {
-                await deleteDoc(doc(db, "categories", e.target.dataset.id));
+            const catId = e.target.dataset.id;
+            if (confirm("Are you sure you want to delete this category?")) {
+                await deleteDoc(doc(db, "categories", catId));
                 loadCategoriesAndItems();
             }
         });
     });
 
-    // Load items after categories are cached
     loadItems();
 }
 
 // Add Item Form
 const itemForm = document.getElementById('item-form');
-itemForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const categoryId = document.getElementById('item-category').value;
-    const name = document.getElementById('item-name').value;
-    const price = document.getElementById('item-price').value;
+if (itemForm) {
+    itemForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const categoryId = document.getElementById('item-category').value;
+        const name = document.getElementById('item-name').value;
+        const price = document.getElementById('item-price').value;
 
-    try {
-        await addDoc(collection(db, "items"), { categoryId, name, price });
-        itemForm.reset();
-        loadItems();
-    } catch (err) {
-        console.error(err);
-        alert("Failed to add item.");
-    }
-});
+        try {
+            await addDoc(collection(db, "items"), { categoryId, name, price });
+            itemForm.reset();
+            loadItems();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to add item.");
+        }
+    });
+}
 
 async function loadItems() {
     const list = document.getElementById('admin-items-list');
+    if (!list) return;
+    
     list.innerHTML = '';
     const snapshot = await getDocs(collection(db, "items"));
     
@@ -185,54 +204,76 @@ async function loadItems() {
         });
     });
 
+    // Item Delete with Confirmation
     document.querySelectorAll('#admin-items-list .delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            await deleteDoc(doc(db, "items", e.target.dataset.id));
-            loadItems();
+            const itemId = e.target.dataset.id;
+            if (confirm("Are you sure you want to delete this item?")) {
+                await deleteDoc(doc(db, "items", itemId));
+                loadItems();
+            }
         });
     });
 }
 
 // Modal Actions
-document.getElementById('save-rename-btn').addEventListener('click', async () => {
-    const name = document.getElementById('modal-item-name').value;
-    const price = document.getElementById('modal-item-price').value;
-    if (activeItemId && name && price) {
-        await updateDoc(doc(db, "items", activeItemId), { name, price });
+const saveRenameBtn = document.getElementById('save-rename-btn');
+if (saveRenameBtn) {
+    saveRenameBtn.addEventListener('click', async () => {
+        const name = document.getElementById('modal-item-name').value;
+        const price = document.getElementById('modal-item-price').value;
+        if (activeItemId && name && price) {
+            await updateDoc(doc(db, "items", activeItemId), { name, price });
+            document.getElementById('rename-modal').style.display = 'none';
+            loadItems();
+        }
+    });
+}
+
+const cancelRenameBtn = document.getElementById('cancel-rename-btn');
+if (cancelRenameBtn) {
+    cancelRenameBtn.addEventListener('click', () => {
         document.getElementById('rename-modal').style.display = 'none';
-        loadItems();
-    }
-});
+    });
+}
 
-document.getElementById('cancel-rename-btn').addEventListener('click', () => {
-    document.getElementById('rename-modal').style.display = 'none';
-});
+const saveMoveBtn = document.getElementById('save-move-btn');
+if (saveMoveBtn) {
+    saveMoveBtn.addEventListener('click', async () => {
+        const categoryId = document.getElementById('modal-target-category').value;
+        if (activeItemId && categoryId) {
+            await updateDoc(doc(db, "items", activeItemId), { categoryId });
+            document.getElementById('move-modal').style.display = 'none';
+            loadItems();
+        }
+    });
+}
 
-document.getElementById('save-move-btn').addEventListener('click', async () => {
-    const categoryId = document.getElementById('modal-target-category').value;
-    if (activeItemId && categoryId) {
-        await updateDoc(doc(db, "items", activeItemId), { categoryId });
+const cancelMoveBtn = document.getElementById('cancel-move-btn');
+if (cancelMoveBtn) {
+    cancelMoveBtn.addEventListener('click', () => {
         document.getElementById('move-modal').style.display = 'none';
-        loadItems();
-    }
-});
-
-document.getElementById('cancel-move-btn').addEventListener('click', () => {
-    document.getElementById('move-modal').style.display = 'none';
-});
+    });
+}
 
 // Category Position Modal Actions
-document.getElementById('save-cat-move-btn').addEventListener('click', async () => {
-    const newOrder = Number(document.getElementById('modal-target-position').value);
-    if (activeCategoryId) {
-        await updateDoc(doc(db, "categories", activeCategoryId), { order: newOrder });
-        document.getElementById('move-cat-modal').style.display = 'none';
-        loadCategoriesAndItems();
-    }
-});
+const saveCatMoveBtn = document.getElementById('save-cat-move-btn');
+if (saveCatMoveBtn) {
+    saveCatMoveBtn.addEventListener('click', async () => {
+        const newOrder = Number(document.getElementById('modal-target-position').value);
+        if (activeCategoryId) {
+            await updateDoc(doc(db, "categories", activeCategoryId), { order: newOrder });
+            document.getElementById('move-cat-modal').style.display = 'none';
+            loadCategoriesAndItems();
+        }
+    });
+}
 
-document.getElementById('cancel-cat-move-btn').addEventListener('click', () => {
-    document.getElementById('move-cat-modal').style.display = 'none';
-});
+const cancelCatMoveBtn = document.getElementById('cancel-cat-move-btn');
+if (cancelCatMoveBtn) {
+    cancelCatMoveBtn.addEventListener('click', () => {
+        document.getElementById('move-cat-modal').style.display = 'none';
+    });
+}
 
 loadCategoriesAndItems();
