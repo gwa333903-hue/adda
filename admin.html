@@ -29,6 +29,7 @@
                 </select>
                 <input type="text" id="item-name" placeholder="Item Name" required>
                 <input type="text" id="item-price" placeholder="Price (e.g. 10 or 10,20)" required>
+                <input type="number" id="item-order" placeholder="Item Position (e.g. 1, 2, 3)" required>
                 <button type="submit" id="add-item-btn">Add Item</button>
             </form>
             <h3>Manage Items</h3>
@@ -49,13 +50,13 @@
         </div>
     </div>
 
-    <!-- Modal for Moving Items between Categories -->
+    <!-- Modal for Moving Items to another Category -->
     <div id="move-modal" class="modal" style="display:none;">
         <div class="modal-content">
             <h3>Move Item to Category</h3>
             <select id="modal-target-category"></select>
             <div class="modal-buttons">
-                <button id="save-move-btn">Move</button>
+                <button id="save-move-btn">Move Cat.</button>
                 <button id="cancel-move-btn" class="cancel-btn">Cancel</button>
             </div>
         </div>
@@ -67,20 +68,35 @@
             <h3>Change Category Position</h3>
             <label style="font-size: 13px; color: #666;">Select new position number:</label>
             <select id="modal-target-position">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
                 <option value="10">10</option>
             </select>
             <div class="modal-buttons">
                 <button id="save-cat-move-btn">Update Position</button>
                 <button id="cancel-cat-move-btn" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Moving Item Position -->
+    <div id="move-item-pos-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Change Item Position</h3>
+            <label style="font-size: 13px; color: #666;">Select new position number:</label>
+            <select id="modal-item-target-position">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                <option value="19">19</option><option value="20">20</option>
+            </select>
+            <div class="modal-buttons">
+                <button id="save-item-pos-btn">Update Position</button>
+                <button id="cancel-item-pos-btn" class="cancel-btn">Cancel</button>
             </div>
         </div>
     </div>

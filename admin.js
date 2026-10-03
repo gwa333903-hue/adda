@@ -10,8 +10,6 @@ let activeCategoryId = null;
 
 onAuthStateChanged(auth, (user) => {
     if (user && user.email === 'adda@adda.com') {
-        // If already logged in and visiting login.html or root, it handles auto-redirect if placed there, 
-        // but here we keep the admin security check intact:
     } else if (!user && window.location.pathname.includes('admin.html')) {
         window.location.href = "login.html";
     }
@@ -94,7 +92,6 @@ async function loadCategoriesAndItems() {
         }
     });
 
-    // Rename Category Trigger
     document.querySelectorAll('.rename-cat-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             editingCategoryId = e.target.dataset.id;
@@ -105,7 +102,6 @@ async function loadCategoriesAndItems() {
         });
     });
 
-    // Move Category Position Trigger
     document.querySelectorAll('.move-cat-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             activeCategoryId = e.target.dataset.id;
@@ -114,7 +110,6 @@ async function loadCategoriesAndItems() {
         });
     });
 
-    // Category Delete with Confirmation
     document.querySelectorAll('#cat-list .delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const catId = e.target.dataset.id;
@@ -136,9 +131,10 @@ if (itemForm) {
         const categoryId = document.getElementById('item-category').value;
         const name = document.getElementById('item-name').value;
         const price = document.getElementById('item-price').value;
+        const order = Number(document.getElementById('item-order').value) || 0;
 
         try {
-            await addDoc(collection(db, "items"), { categoryId, name, price });
+            await addDoc(collection(db, "items"), { categoryId, name, price, order });
             itemForm.reset();
             loadItems();
         } catch (err) {
@@ -160,13 +156,17 @@ async function loadItems() {
         itemsList.push({ id: docSnap.id, ...docSnap.data() });
     });
 
-    // Sort items category-wise based on category order
+    // Sort items first by Category Order, then by Item Order
     itemsList.sort((a, b) => {
         const catA = categoriesListFull.find(c => c.id === a.categoryId);
         const catB = categoriesListFull.find(c => c.id === b.categoryId);
-        const orderA = catA ? (catA.order || 0) : 999;
-        const orderB = catB ? (catB.order || 0) : 999;
-        return orderA - orderB;
+        const catOrderA = catA ? (catA.order || 0) : 999;
+        const catOrderB = catB ? (catB.order || 0) : 999;
+        
+        if (catOrderA !== catOrderB) {
+            return catOrderA - catOrderB;
+        }
+        return (a.order || 0) - (b.order || 0);
     });
 
     itemsList.forEach(item => {
@@ -176,11 +176,12 @@ async function loadItems() {
         div.className = 'admin-item';
         div.innerHTML = `
             <div class="item-info">
-                <span><strong>${item.name}</strong> [${categoryName}] - ₹${item.price}</span>
+                <span>[#${item.order || 0}] <strong>${item.name}</strong> [${categoryName}] - ₹${item.price}</span>
             </div>
             <div class="action-buttons">
                 <button class="rename-item-btn" data-id="${item.id}" data-name="${item.name}" data-price="${item.price}">Rename</button>
-                <button class="move-item-btn" data-id="${item.id}" data-cat="${item.categoryId}">Move</button>
+                <button class="pos-item-btn" data-id="${item.id}" data-order="${item.order || 0}">Pos</button>
+                <button class="move-item-btn" data-id="${item.id}" data-cat="${item.categoryId}">Cat.</button>
                 <button class="delete-btn" data-id="${item.id}">Delete</button>
             </div>
         `;
@@ -196,6 +197,16 @@ async function loadItems() {
         });
     });
 
+    // New Position trigger for Items
+    document.querySelectorAll('.pos-item-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            activeItemId = e.target.dataset.id;
+            document.getElementById('modal-item-target-position').value = e.target.dataset.order || 1;
+            document.getElementById('move-item-pos-modal').style.display = 'flex';
+        });
+    });
+
+    // Existing move to another category trigger
     document.querySelectorAll('.move-item-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             activeItemId = e.target.dataset.id;
@@ -204,7 +215,6 @@ async function loadItems() {
         });
     });
 
-    // Item Delete with Confirmation
     document.querySelectorAll('#admin-items-list .delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const itemId = e.target.dataset.id;
@@ -256,7 +266,6 @@ if (cancelMoveBtn) {
     });
 }
 
-// Category Position Modal Actions
 const saveCatMoveBtn = document.getElementById('save-cat-move-btn');
 if (saveCatMoveBtn) {
     saveCatMoveBtn.addEventListener('click', async () => {
@@ -273,6 +282,26 @@ const cancelCatMoveBtn = document.getElementById('cancel-cat-move-btn');
 if (cancelCatMoveBtn) {
     cancelCatMoveBtn.addEventListener('click', () => {
         document.getElementById('move-cat-modal').style.display = 'none';
+    });
+}
+
+// NEW: Item Position Modal Actions
+const saveItemPosBtn = document.getElementById('save-item-pos-btn');
+if (saveItemPosBtn) {
+    saveItemPosBtn.addEventListener('click', async () => {
+        const newOrder = Number(document.getElementById('modal-item-target-position').value);
+        if (activeItemId) {
+            await updateDoc(doc(db, "items", activeItemId), { order: newOrder });
+            document.getElementById('move-item-pos-modal').style.display = 'none';
+            loadItems();
+        }
+    });
+}
+
+const cancelItemPosBtn = document.getElementById('cancel-item-pos-btn');
+if (cancelItemPosBtn) {
+    cancelItemPosBtn.addEventListener('click', () => {
+        document.getElementById('move-item-pos-modal').style.display = 'none';
     });
 }
 

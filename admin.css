@@ -18,8 +18,9 @@ li, .admin-item { display: flex; flex-direction: column; align-items: flex-start
 .delete-btn:hover { background: #c0392b; }
 .rename-cat-btn, .rename-item-btn { background: #34495e; padding: 6px 12px; font-size: 13px; color: white; }
 .rename-cat-btn:hover, .rename-item-btn:hover { background: #2c3e50; }
-.move-item-btn, .move-cat-btn { background: #7f8c8d; padding: 6px 12px; font-size: 13px; color: white; }
-.move-item-btn:hover, .move-cat-btn:hover { background: #707b7c; }
+/* Applied style to pos-item-btn so it matches the move buttons */
+.move-item-btn, .move-cat-btn, .pos-item-btn { background: #7f8c8d; padding: 6px 12px; font-size: 13px; color: white; }
+.move-item-btn:hover, .move-cat-btn:hover, .pos-item-btn:hover { background: #707b7c; }
 .item-info { flex: 1; }
 
 /* Modal Styling */

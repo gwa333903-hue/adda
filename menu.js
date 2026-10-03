@@ -18,12 +18,15 @@ async function loadMenu() {
     // Fetch Items
     const itemSnapshot = await getDocs(collection(db, "items"));
     const items = [];
-    itemSnapshot.forEach(doc => { items.push(doc.data()); });
+    itemSnapshot.forEach(doc => { items.push({ id: doc.id, ...doc.data() }); });
 
     // Render Grouped by Sorted Category
     categoriesList.forEach(cat => {
-        const catItems = items.filter(item => item.categoryId === cat.id);
+        let catItems = items.filter(item => item.categoryId === cat.id);
         if (catItems.length === 0) return;
+
+        // Sort items inside this category based on their specific item order
+        catItems.sort((a, b) => (a.order || 0) - (b.order || 0));
 
         const section = document.createElement('div');
         section.className = 'category-section';
